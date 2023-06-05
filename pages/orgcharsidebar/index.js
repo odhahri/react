@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons';
 import { Layout, Menu, Button, theme } from 'antd';
 import SelectionDemo from '../../components/orgchar';
+import axios from 'axios';
 
 const { Header, Sider, Content } = Layout;
 
@@ -17,12 +18,16 @@ export default function Posts({ posts }) {
 
   const handlePostClick = async (postId) => {
     setSelectedPostId(postId);
-
-    const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${postId}`);
-    const data = await res.json();
-
-    setSelectedPostData(data);
-    setUpdateKey((prevKey) => prevKey + 1); // Increment the updateKey to force a re-render
+  
+    try {
+      const response = await axios.get(`https://jsonplaceholder.typicode.com/posts/${postId}`);
+      const data = response.data;
+  
+      setSelectedPostData(data);
+      setUpdateKey((prevKey) => prevKey + 1);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -75,26 +80,39 @@ export default function Posts({ posts }) {
 export async function getServerSideProps(context) {
   const { id } = context.query;
 
-  // If an individual post was requested, fetch only that post
   if (id) {
-    const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`);
-    const data = await res.json();
+    try {
+      const response = await axios.get(`https://jsonplaceholder.typicode.com/posts/${id}`);
+      const data = response.data;
+
+      return {
+        props: {
+          posts: [],
+          selectedPostData: data,
+        },
+      };
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  try {
+    const response = await axios.get('https://jsonplaceholder.typicode.com/posts?_limit=10');
+    const data = response.data;
 
     return {
       props: {
-        posts: [],
-        selectedPostData: data,
+        posts: data,
+        selectedPostData: null,
       },
     };
+  } catch (error) {
+    console.error(error);
   }
-
-  // Fetch the list of posts if no individual post was requested
-  const res = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=10');
-  const data = await res.json();
 
   return {
     props: {
-      posts: data,
+      posts: [],
       selectedPostData: null,
     },
   };
